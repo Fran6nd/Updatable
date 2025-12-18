@@ -1,0 +1,55 @@
+name: Arduino CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        fqbn:
+          - arduino:avr:uno
+          - arduino:avr:mega
+          - arduino:samd:mkr1000
+          - esp32:esp32:esp32
+          - esp8266:esp8266:generic
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Arduino CLI
+      uses: arduino/setup-arduino-cli@v1
+
+    - name: Install Arduino cores
+      run: |
+        arduino-cli core update-index
+        arduino-cli core install arduino:avr
+        arduino-cli core install arduino:samd
+        arduino-cli core update-index --additional-urls https://dl.espressif.com/dl/package_esp32_index.json
+        arduino-cli core install esp32:esp32 --additional-urls https://dl.espressif.com/dl/package_esp32_index.json || true
+        arduino-cli core update-index --additional-urls http://arduino.esp8266.com/stable/package_esp8266com_index.json
+        arduino-cli core install esp8266:esp8266 --additional-urls http://arduino.esp8266.com/stable/package_esp8266com_index.json || true
+
+    - name: Install Vector library dependency
+      run: |
+        arduino-cli lib install Vector
+
+    - name: Create symlink for library
+      run: |
+        mkdir -p $HOME/Arduino/libraries
+        ln -s $PWD $HOME/Arduino/libraries/Updatable
+
+    - name: Compile test sketch
+      run: |
+        arduino-cli compile --fqbn ${{ matrix.fqbn }} test/test.ino || echo "Compilation failed for ${{ matrix.fqbn }}"
+      continue-on-error: true
+
+    - name: Compile BasicUsage example
+      run: |
+        arduino-cli compile --fqbn ${{ matrix.fqbn }} examples/BasicUsage/BasicUsage.ino

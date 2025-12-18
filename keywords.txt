@@ -1,0 +1,22 @@
+#######################################
+# Syntax Coloring Map For Updatable
+#######################################
+
+#######################################
+# Datatypes (KEYWORD1)
+#######################################
+
+Updatable	KEYWORD1
+
+#######################################
+# Methods and Functions (KEYWORD2)
+#######################################
+
+update	KEYWORD2
+updateAllInstances	KEYWORD2
+setDebugMode	KEYWORD2
+DebugMode	KEYWORD2
+
+#######################################
+# Constants (LITERAL1)
+#######################################
