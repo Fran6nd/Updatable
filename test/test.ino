@@ -11,11 +11,11 @@
 class TestCounter : public Updatable {
 public:
   int updateCount;
-  long int totalDelta;
+  unsigned long totalDelta;
 
   TestCounter() : updateCount(0), totalDelta(0) {}
 
-  void update(long int deltaTime) override {
+  void update(unsigned long deltaTime) override {
     updateCount++;
     totalDelta += deltaTime;
   }
@@ -30,7 +30,7 @@ public:
 int testsPassed = 0;
 int testsFailed = 0;
 
-void assert(const char* testName, bool condition) {
+void testAssert(const char* testName, bool condition) {
   Serial.print("Test: ");
   Serial.print(testName);
   Serial.print(" ... ");
@@ -84,10 +84,10 @@ void runTests() {
 
     Updatable::updateAllInstances(100);
 
-    assert("Counter 1 received update", counter1->updateCount == 1);
-    assert("Counter 2 received update", counter2->updateCount == 1);
-    assert("Counter 1 received correct deltaTime", counter1->totalDelta == 100);
-    assert("Counter 2 received correct deltaTime", counter2->totalDelta == 100);
+    testAssert("Counter 1 received update", counter1->updateCount == 1);
+    testAssert("Counter 2 received update", counter2->updateCount == 1);
+    testAssert("Counter 1 received correct deltaTime", counter1->totalDelta == 100);
+    testAssert("Counter 2 received correct deltaTime", counter2->totalDelta == 100);
 
     delete counter1;
     delete counter2;
@@ -103,8 +103,8 @@ void runTests() {
     Updatable::updateAllInstances(75);
     Updatable::updateAllInstances(25);
 
-    assert("Counter received 3 updates", counter->updateCount == 3);
-    assert("Counter accumulated deltaTime correctly", counter->totalDelta == 150);
+    testAssert("Counter received 3 updates", counter->updateCount == 3);
+    testAssert("Counter accumulated deltaTime correctly", counter->totalDelta == 150);
 
     delete counter;
   }
@@ -116,18 +116,18 @@ void runTests() {
     TestCounter* counter1 = new TestCounter();
     TestCounter* counter2 = new TestCounter();
 
-    assert("Debug mode off by default (counter1)", !counter1->DebugMode());
-    assert("Debug mode off by default (counter2)", !counter2->DebugMode());
+    testAssert("Debug mode off by default (counter1)", !counter1->debugMode());
+    testAssert("Debug mode off by default (counter2)", !counter2->debugMode());
 
     Updatable::setDebugMode(true);
 
-    assert("Debug mode enabled (counter1)", counter1->DebugMode());
-    assert("Debug mode enabled (counter2)", counter2->DebugMode());
+    testAssert("Debug mode enabled (counter1)", counter1->debugMode());
+    testAssert("Debug mode enabled (counter2)", counter2->debugMode());
 
     Updatable::setDebugMode(false);
 
-    assert("Debug mode disabled (counter1)", !counter1->DebugMode());
-    assert("Debug mode disabled (counter2)", !counter2->DebugMode());
+    testAssert("Debug mode disabled (counter1)", !counter1->debugMode());
+    testAssert("Debug mode disabled (counter2)", !counter2->debugMode());
 
     delete counter1;
     delete counter2;
@@ -141,18 +141,18 @@ void runTests() {
     public:
       bool wasUpdated;
       CustomUpdatable() : wasUpdated(false) {}
-      void update(long int deltaTime) override {
+      void update(unsigned long deltaTime) override {
         wasUpdated = true;
       }
     };
 
     CustomUpdatable* custom = new CustomUpdatable();
 
-    assert("Custom update not called yet", !custom->wasUpdated);
+    testAssert("Custom update not called yet", !custom->wasUpdated);
 
     Updatable::updateAllInstances(100);
 
-    assert("Custom update was called", custom->wasUpdated);
+    testAssert("Custom update was called", custom->wasUpdated);
 
     delete custom;
   }
@@ -165,10 +165,34 @@ void runTests() {
 
     Updatable::updateAllInstances(0);
 
-    assert("Update called with zero delta", counter->updateCount == 1);
-    assert("Zero delta accumulated", counter->totalDelta == 0);
+    testAssert("Update called with zero delta", counter->updateCount == 1);
+    testAssert("Zero delta accumulated", counter->totalDelta == 0);
 
     delete counter;
+  }
+  Serial.println();
+
+  // Test 6: Destructor Cleanup
+  Serial.println("--- Test 6: Destructor Cleanup ---");
+  {
+    TestCounter* counter1 = new TestCounter();
+    TestCounter* counter2 = new TestCounter();
+
+    Updatable::updateAllInstances(100);
+
+    testAssert("Both counters received first update",
+               counter1->updateCount == 1 && counter2->updateCount == 1);
+
+    delete counter1;  // Remove first counter
+    counter1 = nullptr;
+
+    counter2->reset();
+    Updatable::updateAllInstances(100);
+
+    testAssert("Only counter2 received second update", counter2->updateCount == 1);
+    testAssert("Counter2 still works after counter1 deleted", counter2->totalDelta == 100);
+
+    delete counter2;
   }
   Serial.println();
 }

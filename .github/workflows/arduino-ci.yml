@@ -11,6 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false
       matrix:
         fqbn:
           - arduino:avr:uno
@@ -47,7 +48,7 @@ jobs:
 
     - name: Compile test sketch
       run: |
-        arduino-cli compile --fqbn ${{ matrix.fqbn }} test/test.ino || echo "Compilation failed for ${{ matrix.fqbn }}"
+        arduino-cli compile --fqbn ${{ matrix.fqbn }} test/test.ino
       continue-on-error: true
 
     - name: Compile BasicUsage example

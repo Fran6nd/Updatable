@@ -1,21 +1,35 @@
 /*
- * BasicUsage Example
+ * BasicUsage Example - Non-blocking LED Blinkers
  *
- * Demonstrates basic usage of the Updatable library.
- * Creates two LED blinkers that update at different rates.
+ * Demonstrates non-blocking programming with the Updatable library.
+ * Two LEDs blink at different rates simultaneously without using delay().
+ *
+ * This example shows how to eliminate blocking delays and create
+ * multiple concurrent tasks that run independently.
  */
 
 #include <Updatable.h>
 
+// Define LED_BUILTIN for platforms that don't have it
+#ifndef LED_BUILTIN
+  #if defined(ESP32)
+    #define LED_BUILTIN 2  // ESP32 typically uses GPIO2
+  #elif defined(ESP8266)
+    #define LED_BUILTIN 2  // ESP8266 typically uses GPIO2
+  #else
+    #define LED_BUILTIN 13 // Default for most Arduino boards
+  #endif
+#endif
+
 class LEDBlinker : public Updatable {
 private:
   int pin;
-  long int interval;
-  long int elapsed;
+  unsigned long interval;
+  unsigned long elapsed;
   bool state;
 
 public:
-  LEDBlinker(int ledPin, long int blinkInterval) {
+  LEDBlinker(int ledPin, unsigned long blinkInterval) {
     pin = ledPin;
     interval = blinkInterval;
     elapsed = 0;
@@ -23,15 +37,15 @@ public:
     pinMode(pin, OUTPUT);
   }
 
-  void update(long int deltaTime) override {
+  void update(unsigned long deltaTime) override {
     elapsed += deltaTime;
 
     if (elapsed >= interval) {
-      elapsed = 0;
+      elapsed -= interval;  // Preserve timing accuracy
       state = !state;
       digitalWrite(pin, state ? HIGH : LOW);
 
-      if (DebugMode()) {
+      if (debugMode()) {
         Serial.print("LED on pin ");
         Serial.print(pin);
         Serial.print(" toggled to ");
@@ -51,18 +65,19 @@ void setup() {
   // Optional: Enable debug mode to see update messages
   // Updatable::setDebugMode(true);
 
-  Serial.println("Updatable Library - Basic Usage Example");
-  Serial.println("Two LEDs blinking at different rates");
+  Serial.println("Updatable Library - Non-blocking Example");
+  Serial.println("Two LEDs blinking independently without delay()");
+  Serial.println("Notice: The loop stays responsive!");
 }
 
 void loop() {
-  static unsigned long lastUpdate = 0;
-  unsigned long now = millis();
-  long int deltaTime = now - lastUpdate;
-  lastUpdate = now;
+  // Update all registered Updatable instances (non-blocking!)
+  // Delta time is calculated automatically with overflow protection
+  Updatable::updateAllInstances();
 
-  // Update all registered Updatable instances
-  Updatable::updateAllInstances(deltaTime);
+  // The loop stays responsive - you can add more non-blocking code here
+  // No blocking delay() calls needed!
 
-  delay(10);  // Small delay to prevent excessive looping
+  // Note: You can also manually provide delta time if needed:
+  // Updatable::updateAllInstances(deltaTime);
 }
